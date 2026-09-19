@@ -256,6 +256,24 @@
   }
   .ch14-controls .card-zoom-btn{ margin-left:auto; }
 
+  /* CHART 11: 전체 너비 카드 + 가로/세로 스크롤 히트맵 */
+  .card-wide{ grid-column: 1 / -1; }
+  .ch11-controls{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-bottom: 10px; font-size:12px; color: var(--ink-navy-2);
+  }
+  .ch11-controls label{ display:flex; align-items:center; gap:5px; }
+  .ch11-controls input[type=number]{
+    width: 62px; font-family:var(--mono); font-size:12px; padding:5px 6px;
+    border:1px solid var(--line-dark); border-radius:6px; background:#fff; color: var(--ink-navy-2);
+  }
+  .ch11-controls .card-zoom-btn{ margin-left:auto; }
+  .ch11-body{ height:auto; min-height:380px; max-height:760px; overflow:auto; }
+  #empty11{ height:380px; }
+  #chart11{ max-width:none; }
+  #empty13{ height:380px; }
+  #chart13{ max-width:none; }
+
   footer{ text-align:center; color: var(--muted); font-size:12px; margin-top: 46px; }
 
   @media (max-width: 520px){
@@ -497,6 +515,44 @@
         <div class="card-empty" id="empty14"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
       </div>
     </div>
+
+    <div class="card card-wide">
+      <div class="card-head">
+        <div><span class="card-num">CHART 11</span><h2>특정 등급대 학생들의 진학결과</h2></div><button class="card-download-btn" id="chart11Download" style="display:none;">PNG 다운로드</button>
+      </div>
+      <div class="ch11-controls">
+        <label>몇 등급 이상 <input type="number" id="ch11Low" value="1" step="0.1" min="0" max="9"></label>
+        <label>몇 등급 미만 <input type="number" id="ch11High" value="2" step="0.1" min="0.1" max="9.5"></label>
+        <button class="card-zoom-btn" id="ch11Redraw">다시 그리기</button>
+      </div>
+      <div class="card-body ch11-body"><canvas id="chart11"></canvas>
+        <div class="card-empty" id="empty11"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div><span class="card-num">CHART 12</span><h2>수시 4년제대 vs. 전문대</h2></div><div style="display:flex;gap:8px;align-items:center;"><button class="card-download-btn" id="chart12Download" style="display:none;">PNG 다운로드</button><button class="card-zoom-btn" id="chart12ResetZoom" style="display:none;">확대 초기화</button></div>
+      </div>
+      <div class="card-body"><canvas id="chart12"></canvas>
+        <div class="card-empty" id="empty12"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
+      </div>
+      <div class="card-zoom-hint" id="chart12ZoomHint" style="display:none;">드래그하여 영역을 확대 · 휠로 확대/축소 · 버튼으로 초기화</div>
+    </div>
+
+    <div class="card card-wide">
+      <div class="card-head">
+        <div><span class="card-num">CHART 13</span><h2>등급대 학생별 합격현황</h2></div><button class="card-download-btn" id="chart13Download" style="display:none;">PNG 다운로드</button>
+      </div>
+      <div class="ch11-controls">
+        <label>몇 등급 이상 <input type="number" id="ch13Low" value="1" step="0.1" min="0" max="9"></label>
+        <label>몇 등급 미만 <input type="number" id="ch13High" value="2" step="0.1" min="0.1" max="9.5"></label>
+        <button class="card-zoom-btn" id="ch13Redraw">다시 그리기</button>
+      </div>
+      <div class="card-body ch11-body"><canvas id="chart13"></canvas>
+        <div class="card-empty" id="empty13"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
+      </div>
+    </div>
   </div>
 
   <footer></footer>
@@ -550,7 +606,7 @@ if(typeof Chart === 'undefined' || typeof XLSX === 'undefined'){
 }
 Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
 Chart.defaults.color = COLOR.navy;
-let charts = {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null,9:null,14:null};
+let charts = {1:null,2:null,3:null,4:null,5:null,6:null,7:null,8:null,9:null,11:null,12:null,14:null};
 
 /* ================================================================
    1. 업로드 & 전처리 (구 "합불 전처리" 앱 로직)
@@ -687,21 +743,27 @@ function resetResult(){
 }
 
 function clearAllCharts(){
-  [1,2,3,4,5,6,7,8,9,14].forEach(n=>{
+  [1,2,3,4,5,6,7,8,9,11,12,13,14].forEach(n=>{
     if(charts[n]){ charts[n].destroy(); charts[n]=null; }
     document.getElementById('chart'+n).style.display='none';
     const el = document.getElementById('empty'+n);
     el.style.display='flex';
     el.innerHTML = '<b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span>';
   });
-  const ch5tip = document.querySelector('.ch5-tooltip');
-  if(ch5tip) ch5tip.style.opacity = 0;
+  document.querySelectorAll('.ch5-tooltip').forEach(t=>{ t.style.opacity = 0; });
   const ch5ResetBtn = document.getElementById('chart5ResetZoom');
   if(ch5ResetBtn) ch5ResetBtn.style.display = 'none';
   const ch5Hint = document.getElementById('chart5ZoomHint');
   if(ch5Hint) ch5Hint.style.display = 'none';
+  const ch12ResetBtn = document.getElementById('chart12ResetZoom');
+  if(ch12ResetBtn) ch12ResetBtn.style.display = 'none';
+  const ch12Hint = document.getElementById('chart12ZoomHint');
+  if(ch12Hint) ch12Hint.style.display = 'none';
   chart7Data = null;
   chart9Data = null;
+  chart11Data = null;
+  chart13Data = null;
+  chart13Hidden = { pass:false, fail:false };
   lastNormalizedRows = null;
   setTimeout(refreshChartDownloadButtons, 0);
 }
@@ -1026,6 +1088,9 @@ function renderAll(rows){
   renderChart7(rows);
   renderChart8FromInputs(rows);
   renderChart9(rows);
+  renderChart11FromInputs(rows);
+  renderChart12(rows);
+  renderChart13FromInputs(rows);
   renderChart14FromInputs(rows);
   renderStamp(rows);
   renderStamp2(rows);
@@ -1136,10 +1201,10 @@ function showEmpty(n, message){
   el.style.display='flex';
   el.innerHTML = `<b>표시할 데이터가 없습니다</b><span>${message}</span>`;
   if(charts[n]){ charts[n].destroy(); charts[n]=null; }
-  if(n===5){
-    const btn = document.getElementById('chart5ResetZoom');
+  if(n===5 || n===12){
+    const btn = document.getElementById('chart'+n+'ResetZoom');
     if(btn) btn.style.display = 'none';
-    const hint = document.getElementById('chart5ZoomHint');
+    const hint = document.getElementById('chart'+n+'ZoomHint');
     if(hint) hint.style.display = 'none';
   }
 }
@@ -1164,7 +1229,10 @@ const CHART_DOWNLOAD_MAP = {
   7:{canvasId:'chart7', file:'Chart07_내신_과목별_상관관계.png'},
   8:{canvasId:'chart8', file:'Chart08_수시전형_내신구간별_합격률.png'},
   9:{canvasId:'chart9', file:'Chart09_수시_지원대학_워드클라우드.png'},
-  10:{canvasId:'chart14', file:'Chart10_수시_지원학과_Top.png'}
+  10:{canvasId:'chart14', file:'Chart10_수시_지원학과_Top.png'},
+  11:{canvasId:'chart11', file:'Chart11_특정등급대_진학결과.png'},
+  12:{canvasId:'chart12', file:'Chart12_수시_4년제대_vs_전문대.png'},
+  13:{canvasId:'chart13', file:'Chart13_등급대_학생별_합격현황.png'}
 };
 
 function downloadChartPNG(chartNo){
@@ -1631,6 +1699,18 @@ function ch5Quantile(sorted, p){
   return sorted[lo] + (sorted[hi]-sorted[lo])*(idx-lo);
 }
 
+// [확대 왜곡 수정] 카테고리(종합/교과/논술/실기) 눈금은 "현재 보이는 x 범위 안"
+// 에 있는 것만 만든다. 범위 밖 눈금(예: 확대해서 보이지 않는 0, 3번 카테고리)까지
+// 강제로 만들면 Chart.js가 첫/마지막 눈금 위치를 기준으로 x축 좌우 여백을 계산하는데,
+// 그 값이 화면 밖으로 크게 벗어나 여백이 폭증하면서 그래프 영역이 찌그러진다.
+function ch5BuildCatTicks(scale){
+  const ticks = [];
+  CH5_CATS.forEach((_,i)=>{
+    if(i >= scale.min - 1e-9 && i <= scale.max + 1e-9) ticks.push({ value:i });
+  });
+  scale.ticks = ticks;
+}
+
 // 기본 캔버스 툴팁은 커서를 따라다니며 점을 가리는 문제가 있어,
 // 카드 오른쪽 상단 빈 공간에 고정으로 뜨는 커스텀 팝업으로 대체한다.
 function ch5GetTooltipEl(chart){
@@ -1752,9 +1832,7 @@ function renderChart5(rows){
           // linear scale이 "예쁜 숫자"로 눈금을 자동 계산하면 -0.5~3.5 범위에서
           // 정수(0,1,2,3)에 눈금이 정확히 맞아떨어지지 않아 라벨이 비어버리는
           // 문제가 있었음. afterBuildTicks로 카테고리 개수만큼 정수 눈금을 강제 지정.
-          afterBuildTicks:(scale)=>{
-            scale.ticks = CH5_CATS.map((_,i)=>({ value:i }));
-          },
+          afterBuildTicks: ch5BuildCatTicks,
           ticks:{ font:{size:12,weight:'700'},
             callback:(v)=> CH5_CATS[v] !== undefined ? CH5_CATS[v] : '' },
           grid:{display:false} },
@@ -1806,13 +1884,18 @@ function renderChart5(rows){
       // 박스·수염·평균 다이아몬드를 실제 데이터 점보다 먼저 그려서
       // 학생 점(jitter)이 항상 위에 보이도록 함
       beforeDatasetsDraw(chart){
-        const {ctx, scales} = chart;
+        const {ctx, scales, chartArea} = chart;
         const xScale = scales.x, yScale = scales.y;
         ctx.save();
+        // 확대했을 때 화면 밖(축 라벨·제목 위)으로 상자가 번지지 않도록 그래프 영역으로 자름
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.clip();
+        // 상자 폭도 x축 확대 배율을 따라가도록 데이터 단위(카테고리 폭의 0.22)로 계산
+        const boxHalf = Math.abs(xScale.getPixelForValue(0.22) - xScale.getPixelForValue(0));
         grouped.forEach((g, ci)=>{
           if(!g.stats) return;
           const cx = xScale.getPixelForValue(ci);
-          const boxHalf = 26;
           const yMinPx = yScale.getPixelForValue(g.stats.min);
           const yMaxPx = yScale.getPixelForValue(g.stats.max);
           const yQ1Px = yScale.getPixelForValue(g.stats.q1);
@@ -2137,6 +2220,8 @@ window.addEventListener('resize', ()=>{
   ch7ResizeTimer = setTimeout(()=>{
     if(chart7Data) drawChart7Heatmap();
     if(chart9Data) drawChart9WordCloud();
+    if(chart11Data) drawChart11Heatmap();
+    if(chart13Data) drawChart13();
   }, 120);
 });
 
@@ -2534,6 +2619,684 @@ function renderChart14(rows, minCount){
     }]
   });
 }
+
+
+/* ---- CHART 11: 특정 등급대 학생들의 진학결과 (참조 python seaborn heatmap 이식) ----
+   참조 파이썬 코드는 전과목이 [이상, 미만) 구간이고 최종='합'인 행만 뽑아
+   (모집단위 × 대학) 합격 건수를 viridis 히트맵으로 그리고, 각 칸에
+   "전과목 평균\n전형분류(여러 개면 '/')"를 표시한다. seaborn이 없으므로
+   순수 Canvas 2D API로 이식한다. 합격이 없는 칸은 비워 두고(NaN 마스킹),
+   대학명은 python처럼 글자를 세로로 쌓아 x축 라벨로 표시한다.
+   대학·모집단위가 많으면 카드 안에서 스크롤하며 볼 수 있다.
+---------------------------------------------------------------- */
+let chart11Data = null; // { title, cols, rowsLabels, count, annot, vmin, vmax }
+
+const CH11_VIRIDIS = ['#440154','#482878','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'];
+function ch11HexToRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function ch11Viridis(t){
+  t = Math.max(0, Math.min(1, t));
+  const pos = t * (CH11_VIRIDIS.length - 1);
+  const i = Math.min(CH11_VIRIDIS.length - 2, Math.floor(pos));
+  const f = pos - i;
+  const a = ch11HexToRgb(CH11_VIRIDIS[i]), b = ch11HexToRgb(CH11_VIRIDIS[i+1]);
+  return `rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`;
+}
+
+function renderChart11FromInputs(rows){
+  const low = parseFloat(document.getElementById('ch11Low').value);
+  const high = parseFloat(document.getElementById('ch11High').value);
+  renderChart11(rows, low, high);
+}
+
+document.getElementById('ch11Redraw').addEventListener('click', ()=>{
+  if(!lastNormalizedRows){ return; }
+  renderChart11FromInputs(lastNormalizedRows);
+});
+
+function renderChart11(rows, low, high){
+  const colUni = colExists(rows, ['대학']);
+  const colDept = colExists(rows, ['모집단위']);
+  const colGrade = colExists(rows, ['전과목']);
+  const colFinal = colExists(rows, ['최종']);
+  const colType = colExists(rows, ['전형분류']);
+  if(!colUni || !colDept || !colGrade || !colFinal){
+    showEmpty(11, missingColsMessage([{label:'대학',col:colUni},{label:'모집단위',col:colDept},{label:'전과목',col:colGrade},{label:'최종',col:colFinal}]));
+    chart11Data = null; return;
+  }
+  if(isNaN(low) || isNaN(high) || high <= low){
+    showEmpty(11, '"몇 등급 이상"과 "몇 등급 미만" 값을 올바르게 입력해 주세요. (이상 < 미만)');
+    chart11Data = null; return;
+  }
+
+  // 참조 python: (전과목 >= low) & (전과목 < high) & (최종 == '합')
+  const selected = rows.filter(r=>{
+    if(r[colFinal] !== '합') return false;
+    if(r[colGrade]===null || r[colGrade]===undefined || r[colGrade]==='') return false;
+    const g = Number(r[colGrade]);
+    if(isNaN(g) || g < low || g >= high) return false;
+    const u = r[colUni], d = r[colDept];
+    if(u===null || u===undefined || u==='' || d===null || d===undefined || d==='') return false;
+    return true;
+  });
+  if(!selected.length){
+    showEmpty(11, `전과목 ${low}등급 이상 ${high}등급 미만인 합격 데이터가 없습니다.`);
+    chart11Data = null; return;
+  }
+
+  // (대학 → 모집단위 → {건수, 전과목 합, 전형분류 목록}) 집계
+  const byUni = new Map();
+  const deptSet = new Set();
+  selected.forEach(r=>{
+    const uni = String(canonicalizeUni(r[colUni]));
+    const dept = String(r[colDept]).trim();
+    let type = colType ? r[colType] : null;
+    if(type === '학생부') type = '교과';
+    deptSet.add(dept);
+    if(!byUni.has(uni)) byUni.set(uni, new Map());
+    const m = byUni.get(uni);
+    if(!m.has(dept)) m.set(dept, { n:0, sum:0, types:[] });
+    const cell = m.get(dept);
+    cell.n += 1;
+    cell.sum += Number(r[colGrade]);
+    if(type!==null && type!==undefined && type!=='' && !cell.types.includes(type)) cell.types.push(type);
+  });
+
+  const cols = [...byUni.keys()].sort((a,b)=> a.localeCompare(b,'ko'));
+  const rowsLabels = [...deptSet].sort((a,b)=> a.localeCompare(b,'ko'));
+  const count = rowsLabels.map(()=> cols.map(()=> null));
+  const annot = rowsLabels.map(()=> cols.map(()=> ''));
+  let vmin = Infinity, vmax = -Infinity;
+  cols.forEach((uni, ci)=>{
+    byUni.get(uni).forEach((cell, dept)=>{
+      const ri = rowsLabels.indexOf(dept);
+      count[ri][ci] = cell.n;
+      annot[ri][ci] = `${(cell.sum/cell.n).toFixed(2)}\n${cell.types.join('/')}`;
+      if(cell.n < vmin) vmin = cell.n;
+      if(cell.n > vmax) vmax = cell.n;
+    });
+  });
+
+  chart11Data = {
+    title: `${workYear}학년도 ${Math.round(low)}등급 학생들의 진학결과 (${low}~${high}등급 미만, 합격 ${selected.length}건)`,
+    cols, rowsLabels, count, annot, vmin, vmax
+  };
+  showChart(11);
+  drawChart11Heatmap();
+}
+
+function drawChart11Heatmap(){
+  if(!chart11Data) return;
+  const { title, cols, rowsLabels, count, annot, vmin, vmax } = chart11Data;
+  const canvas = document.getElementById('chart11');
+  const container = canvas.parentNode;
+  const availW = container.clientWidth;
+  if(availW <= 0) return;
+
+  const nR = rowsLabels.length, nC = cols.length;
+  const cellW = 64, cellH = 40, topPad = 36, rightPad = 12;
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  measureCtx.font = "700 11px 'Noto Sans KR', sans-serif";
+  const rowLabelMax = 200;
+  const rowLabelW = Math.max(60, Math.min(rowLabelMax, Math.ceil(Math.max(...rowsLabels.map(l=> measureCtx.measureText(l).width))) + 14));
+  const maxColChars = Math.max(...cols.map(c=> Array.from(c).length));
+  const bottomH = maxColChars * 13 + 14;
+
+  const gridLeft = rowLabelW;
+  const gridTop = topPad;
+  const cssW = Math.max(availW, gridLeft + nC*cellW + rightPad);
+  const cssH = gridTop + nR*cellH + bottomH;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW*dpr);
+  canvas.height = Math.round(cssH*dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  // 제목
+  ctx.save();
+  ctx.font = "700 15px 'Noto Serif KR', serif";
+  ctx.fillStyle = COLOR.navy;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(title, 4, 22);
+  ctx.restore();
+
+  ctx.save();
+  ctx.textBaseline = 'middle';
+
+  // 셀 (합격이 없는 칸은 비워 둠)
+  for(let i=0;i<nR;i++){
+    for(let j=0;j<nC;j++){
+      const v = count[i][j];
+      if(v === null) continue;
+      const x = gridLeft + j*cellW, y = gridTop + i*cellH;
+      const t = (vmax > vmin) ? (v - vmin)/(vmax - vmin) : 0;
+      ctx.fillStyle = ch11Viridis(t);
+      ctx.fillRect(x, y, cellW, cellH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, cellW, cellH);
+
+      // 주석: 1행 = 전과목 평균, 2행 = 전형분류 ('/' 구분). 칸 폭에 맞게 글자 크기 축소
+      const lines = annot[i][j].split('\n');
+      ctx.fillStyle = (t > 0.75) ? COLOR.navy : '#ffffff';
+      ctx.textAlign = 'center';
+      let fs = 10;
+      const fit = (txt)=>{
+        let f = fs;
+        ctx.font = `600 ${f}px 'Noto Sans KR', sans-serif`;
+        while(f > 6 && ctx.measureText(txt).width > cellW - 6){
+          f -= 0.5;
+          ctx.font = `600 ${f}px 'Noto Sans KR', sans-serif`;
+        }
+      };
+      if(lines[1]){
+        fit(lines[0]); ctx.fillText(lines[0], x + cellW/2, y + cellH/2 - 8);
+        fit(lines[1]); ctx.fillText(lines[1], x + cellW/2, y + cellH/2 + 8);
+      } else {
+        fit(lines[0]); ctx.fillText(lines[0], x + cellW/2, y + cellH/2);
+      }
+    }
+  }
+
+  // 행 라벨(모집단위, 왼쪽) — 너무 길면 말줄임
+  ctx.fillStyle = COLOR.navy;
+  ctx.font = "700 11px 'Noto Sans KR', sans-serif";
+  ctx.textAlign = 'right';
+  for(let i=0;i<nR;i++){
+    let label = rowsLabels[i];
+    const maxW = rowLabelW - 12;
+    if(ctx.measureText(label).width > maxW){
+      while(label.length > 1 && ctx.measureText(label + '…').width > maxW) label = label.slice(0,-1);
+      label += '…';
+    }
+    ctx.fillText(label, gridLeft - 8, gridTop + i*cellH + cellH/2);
+  }
+
+  // 열 라벨(대학, 아래) — python처럼 글자를 세로로 쌓아서 표시
+  ctx.textAlign = 'center';
+  ctx.font = "700 11px 'Noto Sans KR', sans-serif";
+  for(let j=0;j<nC;j++){
+    const chars = Array.from(cols[j]);
+    const x = gridLeft + j*cellW + cellW/2;
+    chars.forEach((ch, k)=>{
+      ctx.fillText(ch, x, gridTop + nR*cellH + 12 + k*13);
+    });
+  }
+
+  ctx.restore();
+}
+
+
+/* ---- CHART 12: 수시 4년제대 vs. 전문대 (참조 R코드 ggplot2 이식) ----
+   R코드: 지원시기가 수시/수시1차/수시2차인 행만 사용하고, 전형분류·전과목·최종
+   결측을 제외한 뒤, 지원시기가 '수시1차' 또는 '수시2차'이면 "전문대",
+   그 외(수시)는 "4년제"로 구분한다. 전형분류별 상자그림(geom_boxplot) 위에
+   4년제=green4, 전문대=purple 색의 지터 점(geom_jitter)을 얹고, y축은
+   0.5 간격 눈금의 역순(scale_y_reverse), x축은 종합/교과/논술/실기 순서.
+   CHART 05와 같은 방식(Chart.js scatter + 커스텀 상자그림, 드래그 확대,
+   고정 위치 팝업)으로 그린다. 상자그림은 전형분류 전체(4년제+전문대)
+   데이터로 계산한다(R의 geom_boxplot이 색 구분 없이 전체를 쓰는 것과 동일).
+---------------------------------------------------------------- */
+const CH12_COLOR = { '4년제':'#008b00', '전문대':'#a020f0' };
+
+function ch12ExternalTooltip(context){
+  const { chart, tooltip } = context;
+  const el = ch5GetTooltipEl(chart);
+  if(!tooltip || tooltip.opacity === 0){
+    el.style.opacity = 0;
+    return;
+  }
+  const dp = tooltip.dataPoints && tooltip.dataPoints[0];
+  const raw = dp && dp.raw;
+  let text = '';
+  if(raw){
+    const gradeStr = (typeof raw.y === 'number') ? raw.y.toFixed(1) + '등급(내신) ' : '';
+    text = `[${raw.group}] ` + gradeStr + (raw.note || '');
+  }
+  el.textContent = text;
+  el.style.opacity = 1;
+}
+
+function renderChart12(rows){
+  const colType = colExists(rows, ['전형분류']);
+  const colGrade = colExists(rows, ['전과목']);
+  const colFinal = colExists(rows, ['최종']);
+  const colTiming = colExists(rows, ['지원시기']);
+  const colLabel = colExists(rows, ['대학_모집단위_최종_표점합수능_백분위수능_등급수능']);
+  if(!colType || !colGrade || !colFinal || !colTiming){
+    showEmpty(12, missingColsMessage([{label:'전형분류',col:colType},{label:'전과목',col:colGrade},{label:'최종',col:colFinal},{label:'지원시기',col:colTiming}])); return;
+  }
+
+  const filtered = rows.filter(r=>{
+    const timing = String(r[colTiming]||'').trim();
+    if(!CH5_TIMING_SET.has(timing)) return false;
+    if(r[colType]===null || r[colType]===undefined || r[colType]==='') return false;
+    const g = Number(r[colGrade]);
+    if(r[colGrade]===null || r[colGrade]===undefined || r[colGrade]==='' || isNaN(g)) return false;
+    if(r[colFinal]===null || r[colFinal]===undefined || r[colFinal]==='') return false;
+    return true;
+  }).map(r=>{
+    let type = r[colType];
+    if(type === '학생부') type = '교과';
+    const timing = String(r[colTiming]||'').trim();
+    // R: ifelse(grepl("수시1차|수시2차", 지원시기), "전문대", "4년제")
+    const group = /수시1차|수시2차/.test(timing) ? '전문대' : '4년제';
+    return {
+      type, group,
+      grade: Number(r[colGrade]),
+      label: colLabel && r[colLabel] ? r[colLabel] : `${type} ${Number(r[colGrade]).toFixed(2)}등급`
+    };
+  }).filter(r=> CH5_CATS.includes(r.type));
+
+  if(!filtered.length){ showEmpty(12, '수시 전형분류·내신 데이터가 없습니다.'); return; }
+  showChart(12);
+
+  // 전형분류별 상자그림 통계 (4년제 + 전문대 전체)
+  const grouped = CH5_CATS.map(cat=>{
+    const items = filtered.filter(r=>r.type===cat);
+    const vals = items.map(r=>r.grade).sort((a,b)=>a-b);
+    if(!vals.length) return { cat, items, stats:null };
+    return { cat, items, stats:{
+      min: vals[0], max: vals[vals.length-1],
+      q1: ch5Quantile(vals,0.25), median: ch5Quantile(vals,0.5), q3: ch5Quantile(vals,0.75)
+    }};
+  });
+
+  // 지터: CHART 05와 동일한 결정론적(골든비율) 분산
+  const CH12_GOLDEN = 0.6180339887498949;
+  const pts = { '4년제':[], '전문대':[] };
+  grouped.forEach((g, ci)=>{
+    g.items.forEach((it, idx)=>{
+      const frac = ((idx * CH12_GOLDEN) + ci * 0.371) % 1;
+      const offset = (frac - 0.5) * 0.78;
+      pts[it.group].push({ x: ci + offset, y: it.grade, note: it.label, group: it.group });
+    });
+  });
+
+  const allGrades = filtered.map(r=>r.grade);
+  const yMin = Math.floor(Math.min(...allGrades)*2)/2 - 0.5;
+  const yMax = Math.ceil(Math.max(...allGrades)*2)/2 + 0.5;
+  const xMin = -0.5, xMax = CH5_CATS.length - 0.5;
+
+  const mkDs = (label)=>({
+    label, data: pts[label],
+    backgroundColor: CH12_COLOR[label], pointBackgroundColor: CH12_COLOR[label],
+    pointBorderColor: 'rgba(255,255,255,0.65)', pointBorderWidth:1,
+    pointRadius:4, hitRadius:6, hoverRadius:6
+  });
+
+  if(charts[12]) charts[12].destroy();
+  charts[12] = new Chart(document.getElementById('chart12'), {
+    type:'scatter',
+    data:{ datasets:[ mkDs('4년제'), mkDs('전문대') ] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'nearest', intersect:true, axis:'xy' },
+      scales:{
+        x:{ min:xMin, max:xMax,
+          afterBuildTicks: ch5BuildCatTicks,
+          ticks:{ font:{size:12,weight:'700'}, callback:(v)=> CH5_CATS[v] !== undefined ? CH5_CATS[v] : '' },
+          grid:{display:false} },
+        y:{ min:yMin, max:yMax, reverse:true, title:{display:true, text:'내신(전과목)'},
+          // R: scale_y_reverse(breaks = seq(0, 9, 0.5)) — 0.5 간격 눈금
+          afterBuildTicks:(scale)=>{
+            const lo = Math.ceil(scale.min*2)/2;
+            const hi = Math.floor(scale.max*2)/2;
+            const ticks = [];
+            for(let t=lo; t<=hi+1e-9; t+=0.5) ticks.push({ value: Math.round(t*10)/10 });
+            scale.ticks = ticks;
+          },
+          ticks:{ font:{size:11} },
+          grid:{color:COLOR.grid} }
+      },
+      plugins:{
+        legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:11} } },
+        title:{ display:true, text:`${workYear}학년도 수시 4년제대 vs. 전문대`, align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} },
+        tooltip:{ enabled:false, external: ch12ExternalTooltip },
+        zoom:{
+          pan:{ enabled:false },
+          zoom:{
+            drag:{ enabled:true, backgroundColor:'rgba(27,42,74,0.15)', borderColor:'rgba(27,42,74,0.55)', borderWidth:1, threshold:10 },
+            wheel:{ enabled:true, speed:0.08 },
+            pinch:{ enabled:true },
+            mode:'xy',
+          },
+          limits:{ x:{ min:xMin, max:xMax }, y:{ min:yMin, max:yMax } }
+        }
+      }
+    },
+    plugins:[{
+      id:'ch12box',
+      beforeDatasetsDraw(chart){
+        const {ctx, scales, chartArea} = chart;
+        const xScale = scales.x, yScale = scales.y;
+        ctx.save();
+        // 확대했을 때 화면 밖(축 라벨·제목 위)으로 상자가 번지지 않도록 그래프 영역으로 자름
+        ctx.beginPath();
+        ctx.rect(chartArea.left, chartArea.top, chartArea.right - chartArea.left, chartArea.bottom - chartArea.top);
+        ctx.clip();
+        // 상자 폭도 x축 확대 배율을 따라가도록 데이터 단위(카테고리 폭의 0.22)로 계산
+        const boxHalf = Math.abs(xScale.getPixelForValue(0.22) - xScale.getPixelForValue(0));
+        grouped.forEach((g, ci)=>{
+          if(!g.stats) return;
+          const cx = xScale.getPixelForValue(ci);
+          const yMinPx = yScale.getPixelForValue(g.stats.min);
+          const yMaxPx = yScale.getPixelForValue(g.stats.max);
+          const yQ1Px = yScale.getPixelForValue(g.stats.q1);
+          const yQ3Px = yScale.getPixelForValue(g.stats.q3);
+          const yMedPx = yScale.getPixelForValue(g.stats.median);
+
+          ctx.strokeStyle = COLOR.muted;
+          ctx.lineWidth = 1.3;
+          ctx.beginPath();
+          ctx.moveTo(cx, yMaxPx); ctx.lineTo(cx, yMinPx);
+          ctx.stroke();
+
+          const boxTop = Math.min(yQ1Px, yQ3Px);
+          const boxHeight = Math.max(Math.abs(yQ3Px - yQ1Px), 1);
+          ctx.fillStyle = 'rgba(27,42,74,0.08)';
+          ctx.strokeStyle = COLOR.navy;
+          ctx.lineWidth = 1.5;
+          ctx.fillRect(cx-boxHalf, boxTop, boxHalf*2, boxHeight);
+          ctx.strokeRect(cx-boxHalf, boxTop, boxHalf*2, boxHeight);
+
+          ctx.beginPath();
+          ctx.moveTo(cx-boxHalf, yMedPx); ctx.lineTo(cx+boxHalf, yMedPx);
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+    }]
+  });
+
+  const resetBtnEl = document.getElementById('chart12ResetZoom');
+  const hintEl = document.getElementById('chart12ZoomHint');
+  if(resetBtnEl){
+    resetBtnEl.style.display = 'inline-flex';
+    resetBtnEl.onclick = ()=>{ if(charts[12]) charts[12].resetZoom(); };
+  }
+  if(hintEl) hintEl.style.display = 'block';
+}
+
+
+/* ---- CHART 13: 등급대 학생별 합격현황 (참조 python matplotlib 누적 막대 이식) ----
+   참조 파이썬 코드: 전과목이 [이상, 미만) 구간인 행을 학생별로 묶어 합/불 건수를
+   누적 막대(합=아래, 불=위)로 그리고, 전과목(x축) 오름차순으로 정렬한다. 합격 막대
+   안에는 "대학\n(모집단위)"를, 불합격 막대 안에는 대학명을 건수만큼 쌓아 표시하고,
+   각 학생의 합격 높이마다 가는 회색 점선을 긋는다. 색은 seaborn 'Dark2'의 첫 두 색.
+   [변경] python은 x축에 '이름'을 쓰지만, 여기서는 이름 대신 각 학생의 '전과목'
+   (내신 등급)을 x축 라벨로 표시한다. 학생 구분은 학번(없으면 이름)으로 하되
+   화면에는 이름·학번을 표시하지 않는다.
+   학생이 많으면 카드 안에서 가로로 스크롤하며 볼 수 있다.
+---------------------------------------------------------------- */
+let chart13Data = null; // { title, bars:[{grade, pass:[{uni,unit}], fail:[{uni}]}], maxTotal }
+// 범례 클릭으로 합/불 표시 여부를 토글 (숨기면 해당 막대·글자·점선이 사라지고 나머지는 아래로 내려앉음)
+let chart13Hidden = { pass:false, fail:false };
+let chart13LegendHits = []; // [{key, x, y, w, h}] — 범례 클릭 영역
+const CH13_COLOR_PASS = '#1b9e77'; // Dark2[0]
+const CH13_COLOR_FAIL = '#d95f02'; // Dark2[1]
+
+function renderChart13FromInputs(rows){
+  const low = parseFloat(document.getElementById('ch13Low').value);
+  const high = parseFloat(document.getElementById('ch13High').value);
+  renderChart13(rows, low, high);
+}
+
+document.getElementById('ch13Redraw').addEventListener('click', ()=>{
+  if(!lastNormalizedRows){ return; }
+  renderChart13FromInputs(lastNormalizedRows);
+});
+
+function renderChart13(rows, low, high){
+  const colId = colExists(rows, ['학번','이름']);
+  const colGrade = colExists(rows, ['전과목']);
+  const colFinal = colExists(rows, ['최종']);
+  const colUni = colExists(rows, ['대학']);
+  const colDept = colExists(rows, ['모집단위']);
+  if(!colId || !colGrade || !colFinal || !colUni || !colDept){
+    showEmpty(13, missingColsMessage([{label:'학번(또는 이름)',col:colId},{label:'전과목',col:colGrade},{label:'최종',col:colFinal},{label:'대학',col:colUni},{label:'모집단위',col:colDept}]));
+    chart13Data = null; return;
+  }
+  if(isNaN(low) || isNaN(high) || high <= low){
+    showEmpty(13, '"몇 등급 이상"과 "몇 등급 미만" 값을 올바르게 입력해 주세요. (이상 < 미만)');
+    chart13Data = null; return;
+  }
+
+  // 참조 python: df[(전과목 >= low) & (전과목 < high)]
+  const students = new Map();
+  rows.forEach(r=>{
+    if(r[colGrade]===null || r[colGrade]===undefined || r[colGrade]==='') return;
+    const g = Number(r[colGrade]);
+    if(isNaN(g) || g < low || g >= high) return;
+    const id = r[colId];
+    if(id===null || id===undefined || id==='') return;
+    const key = String(id);
+    if(!students.has(key)) students.set(key, { grades:[], pass:[], fail:[] });
+    const st = students.get(key);
+    st.grades.push(g);
+    // 참조 python의 shorten_university_name: '대학교' 제거
+    const uni = String(r[colUni]===null || r[colUni]===undefined ? '' : r[colUni]).replace(/대학교/g, '');
+    const unit = String(r[colDept]===null || r[colDept]===undefined ? '' : r[colDept]);
+    if(r[colFinal]==='합') st.pass.push({ uni, unit });
+    else st.fail.push({ uni });
+  });
+  if(!students.size){
+    showEmpty(13, `전과목 ${low}등급 이상 ${high}등급 미만인 학생이 없습니다.`);
+    chart13Data = null; return;
+  }
+
+  // x축(전과목) 오름차순 정렬 (같은 전과목이면 합 건수 적은 순)
+  const bars = [...students.values()].map(st=>({
+    grade: st.grades.reduce((a,b)=>a+b,0) / st.grades.length,
+    pass: st.pass, fail: st.fail
+  })).sort((a,b)=> (a.grade - b.grade) || (a.pass.length - b.pass.length));
+  const maxTotal = Math.max(...bars.map(b=> b.pass.length + b.fail.length));
+
+  chart13Data = {
+    title: `${workYear}학년도 ${Math.round(low)}등급대 학생별 합격현황 (단위: 건) — ${low}~${high}등급 미만, ${bars.length}명`,
+    bars, maxTotal
+  };
+  showChart(13);
+  drawChart13();
+}
+
+// 칸 폭에 맞게 글자 크기를 줄이고, 그래도 넘치면 말줄임
+function ch13FitText(ctx, txt, maxW, fs, minFs, weight){
+  let f = fs;
+  ctx.font = `${weight} ${f}px 'Noto Sans KR', sans-serif`;
+  while(f > minFs && ctx.measureText(txt).width > maxW){
+    f -= 0.5;
+    ctx.font = `${weight} ${f}px 'Noto Sans KR', sans-serif`;
+  }
+  if(ctx.measureText(txt).width > maxW){
+    let t = txt;
+    while(t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0,-1);
+    return t + '…';
+  }
+  return txt;
+}
+
+function drawChart13(){
+  if(!chart13Data) return;
+  const { title, bars, maxTotal } = chart13Data;
+  const canvas = document.getElementById('chart13');
+  const container = canvas.parentNode;
+  const availW = container.clientWidth;
+  if(availW <= 0) return;
+
+  const slot = 64, barW = 52, unitPx = 34;
+  const leftPad = 44, rightPad = 16, topPad = 64, bottomPad = 36;
+  const n = bars.length;
+  const plotW = n * slot;
+  const plotH = Math.max(maxTotal, 1) * unitPx;
+  const cssW = Math.max(availW, leftPad + plotW + rightPad);
+  const cssH = topPad + plotH + bottomPad;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  const yOf = v => topPad + plotH - v * unitPx;
+  const baseY = topPad + plotH;
+
+  // 제목
+  ctx.save();
+  ctx.font = "700 15px 'Noto Serif KR', serif";
+  ctx.fillStyle = COLOR.navy;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(title, 4, 22);
+  ctx.restore();
+
+  // 범례 (python: order=[1,0] → 불, 합 / title='최종')
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = "700 11px 'Noto Sans KR', sans-serif";
+  ctx.fillStyle = COLOR.navy;
+  let lx = leftPad;
+  ctx.fillText('최종', lx, 42);
+  lx += ctx.measureText('최종').width + 12;
+  chart13LegendHits = [];
+  [['fail','불', CH13_COLOR_FAIL], ['pass','합', CH13_COLOR_PASS]].forEach(([key, label, color])=>{
+    const off = chart13Hidden[key];
+    ctx.font = "600 11px 'Noto Sans KR', sans-serif";
+    const tw = ctx.measureText(label).width;
+    ctx.globalAlpha = off ? 0.3 : 1;
+    ctx.fillStyle = color;
+    ctx.fillRect(lx, 36, 12, 12);
+    ctx.fillStyle = off ? COLOR.muted : COLOR.navy;
+    ctx.fillText(label, lx + 17, 42);
+    if(off){ // 숨김 상태: 취소선
+      ctx.strokeStyle = COLOR.muted;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(lx + 17, 42); ctx.lineTo(lx + 17 + tw, 42); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    chart13LegendHits.push({ key, x: lx - 4, y: 32, w: 17 + tw + 8, h: 20 });
+    lx += 17 + tw + 14;
+  });
+  ctx.font = "500 10px 'Noto Sans KR', sans-serif";
+  ctx.fillStyle = COLOR.muted;
+  ctx.fillText('범례를 클릭하면 표시/숨김', lx + 6, 42);
+  ctx.restore();
+
+  ctx.save();
+  ctx.textBaseline = 'middle';
+
+  // y축 눈금 + 가는 격자
+  const yStep = maxTotal <= 15 ? 1 : (maxTotal <= 30 ? 2 : 5);
+  ctx.font = "600 10px 'Noto Sans KR', sans-serif";
+  ctx.textAlign = 'right';
+  for(let v = 0; v <= maxTotal; v += yStep){
+    const y = yOf(v);
+    ctx.strokeStyle = COLOR.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(leftPad, y); ctx.lineTo(leftPad + plotW, y); ctx.stroke();
+    ctx.fillStyle = COLOR.navy;
+    ctx.fillText(String(v), leftPad - 6, y);
+  }
+
+  // 막대 + 안쪽 텍스트
+  bars.forEach((b, i)=>{
+    const cx = leftPad + i*slot + slot/2;
+    const x0 = cx - barW/2;
+    const passN = chart13Hidden.pass ? 0 : b.pass.length;   // 숨김이면 0건으로 취급 → 나머지가 아래로 내려앉음
+    const failN = chart13Hidden.fail ? 0 : b.fail.length;
+
+    if(passN > 0){
+      ctx.fillStyle = CH13_COLOR_PASS;
+      ctx.fillRect(x0, yOf(passN), barW, passN*unitPx);
+    }
+    if(failN > 0){
+      ctx.fillStyle = CH13_COLOR_FAIL;
+      ctx.fillRect(x0, yOf(passN+failN), barW, failN*unitPx);
+    }
+
+    ctx.fillStyle = '#111111';
+    ctx.textAlign = 'center';
+    // 합격: 칸마다 "대학\n(모집단위)" — python: y = 합계높이 - i*offset(=1건), va='top'
+    (chart13Hidden.pass ? [] : b.pass).forEach((it, k)=>{
+      const top = yOf(passN - k);
+      const t1 = ch13FitText(ctx, it.uni, slot-6, 9, 6, 700);
+      ctx.textBaseline = 'top';
+      ctx.fillText(t1, cx, top + 4);
+      const t2 = ch13FitText(ctx, `(${it.unit})`, slot-6, 9, 6, 500);
+      ctx.fillText(t2, cx, top + 4 + 13);
+    });
+    // 불합격: 칸마다 대학명만
+    (chart13Hidden.fail ? [] : b.fail).forEach((it, k)=>{
+      const top = yOf(passN + failN - k);
+      const t1 = ch13FitText(ctx, it.uni, slot-6, 9, 6, 600);
+      ctx.textBaseline = 'middle';
+      ctx.fillText(t1, cx, top + unitPx/2);
+    });
+  });
+
+  // 각 학생의 합격 높이에 가는 회색 점선 (python: hlines, alpha=0.3)
+  ctx.save();
+  ctx.setLineDash([4,3]);
+  ctx.strokeStyle = 'rgba(128,128,128,0.3)';
+  ctx.lineWidth = 0.6;
+  if(!chart13Hidden.pass) bars.forEach(b=>{
+    const y = yOf(b.pass.length);
+    ctx.beginPath(); ctx.moveTo(leftPad, y); ctx.lineTo(leftPad + plotW, y); ctx.stroke();
+  });
+  ctx.restore();
+
+  // 축선 (python: top/right spine 숨김 → 왼쪽·아래만)
+  ctx.strokeStyle = COLOR.navy;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(leftPad, topPad); ctx.lineTo(leftPad, baseY); ctx.lineTo(leftPad + plotW, baseY);
+  ctx.stroke();
+
+  // x축 라벨: 이름 대신 전과목
+  ctx.fillStyle = COLOR.navy;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = "700 11px 'Noto Sans KR', sans-serif";
+  bars.forEach((b, i)=>{
+    ctx.fillText(b.grade.toFixed(2), leftPad + i*slot + slot/2, baseY + 8);
+  });
+  ctx.textAlign = 'right';
+  ctx.font = "600 9px 'Noto Sans KR', sans-serif";
+  ctx.fillStyle = COLOR.muted;
+  ctx.fillText('전과목', leftPad - 6, baseY + 10);
+
+  ctx.restore();
+}
+
+
+// 범례 클릭 → 합/불 토글, 범례 위에서는 손가락 커서
+(function(){
+  const canvas = document.getElementById('chart13');
+  const hitAt = (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    return chart13LegendHits.find(h=> x >= h.x && x <= h.x + h.w && y >= h.y && y <= h.y + h.h) || null;
+  };
+  canvas.addEventListener('click', e=>{
+    if(!chart13Data) return;
+    const hit = hitAt(e);
+    if(!hit) return;
+    chart13Hidden[hit.key] = !chart13Hidden[hit.key];
+    drawChart13();
+  });
+  canvas.addEventListener('mousemove', e=>{
+    canvas.style.cursor = (chart13Data && hitAt(e)) ? 'pointer' : 'default';
+  });
+})();
 
 /* ================================================================
    3. 시그니처 엑셀자료 생성 (구 openpyxl 스크립트 이식)
