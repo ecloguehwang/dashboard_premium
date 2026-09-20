@@ -273,6 +273,20 @@
   #chart11{ max-width:none; }
   #empty13{ height:380px; }
   #chart13{ max-width:none; }
+  #empty15{ height:380px; }
+  #chart15{ max-width:none; }
+  .ch11-controls input[type=checkbox]{ accent-color: var(--gold-dim); }
+  .ch11-controls input[type=checkbox]:disabled + span{ opacity:.45; }
+  .ch9-popup{
+    position:absolute; width:max-content; max-width:260px;
+    background: var(--ink-navy-2); color: var(--paper);
+    font-family:'Noto Sans KR', sans-serif; font-size:12px; line-height:1.55;
+    padding: 9px 12px; border-radius: 10px; box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    opacity:0; pointer-events:none; transition: opacity .1s ease;
+    z-index:6; word-break: keep-all;
+  }
+  .ch9-popup b{ display:block; color: var(--gold); margin-bottom:4px; font-size:12.5px; }
+  .ch9-popup .more{ opacity:.7; margin-top:2px; }
 
   footer{ text-align:center; color: var(--muted); font-size:12px; margin-top: 46px; }
 
@@ -553,6 +567,22 @@
         <div class="card-empty" id="empty13"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
       </div>
     </div>
+
+    <div class="card card-wide">
+      <div class="card-head">
+        <div><span class="card-num">CHART 14</span><h2>등급대별 수능최저등급 충족여부</h2></div><button class="card-download-btn" id="chart14Download" style="display:none;">PNG 다운로드</button>
+      </div>
+      <div class="ch11-controls">
+        <label>내신 높은 등급(이상) <input type="number" id="ch15Min" value="1" step="0.1" min="0" max="9"></label>
+        <label>내신 낮은 등급(미만) <input type="number" id="ch15Max" value="2" step="0.1" min="0.1" max="9.5"></label>
+        <label><input type="checkbox" id="ch15Avg"><span>탐구1·2 평균등급 사용</span></label>
+        <label><input type="checkbox" id="ch15Trunc" disabled><span>평균 절사</span></label>
+        <button class="card-zoom-btn" id="ch15Redraw">다시 그리기</button>
+      </div>
+      <div class="card-body ch11-body"><canvas id="chart15"></canvas>
+        <div class="card-empty" id="empty15"><b>표시할 데이터가 없습니다</b><span>수시·정시 파일을 업로드하고 전처리를 실행해 주세요.</span></div>
+      </div>
+    </div>
   </div>
 
   <footer></footer>
@@ -743,7 +773,7 @@ function resetResult(){
 }
 
 function clearAllCharts(){
-  [1,2,3,4,5,6,7,8,9,11,12,13,14].forEach(n=>{
+  [1,2,3,4,5,6,7,8,9,11,12,13,14,15].forEach(n=>{
     if(charts[n]){ charts[n].destroy(); charts[n]=null; }
     document.getElementById('chart'+n).style.display='none';
     const el = document.getElementById('empty'+n);
@@ -763,6 +793,7 @@ function clearAllCharts(){
   chart9Data = null;
   chart11Data = null;
   chart13Data = null;
+  chart15Data = null;
   chart13Hidden = { pass:false, fail:false };
   lastNormalizedRows = null;
   setTimeout(refreshChartDownloadButtons, 0);
@@ -1092,6 +1123,7 @@ function renderAll(rows){
   renderChart12(rows);
   renderChart13FromInputs(rows);
   renderChart14FromInputs(rows);
+  renderChart15FromInputs(rows);
   renderStamp(rows);
   renderStamp2(rows);
 }
@@ -1232,7 +1264,8 @@ const CHART_DOWNLOAD_MAP = {
   10:{canvasId:'chart14', file:'Chart10_수시_지원학과_Top.png'},
   11:{canvasId:'chart11', file:'Chart11_특정등급대_진학결과.png'},
   12:{canvasId:'chart12', file:'Chart12_수시_4년제대_vs_전문대.png'},
-  13:{canvasId:'chart13', file:'Chart13_등급대_학생별_합격현황.png'}
+  13:{canvasId:'chart13', file:'Chart13_등급대_학생별_합격현황.png'},
+  14:{canvasId:'chart15', file:'Chart14_등급대별_수능최저등급_충족여부.png'}
 };
 
 function downloadChartPNG(chartNo){
@@ -1332,6 +1365,7 @@ function renderChart1(rows){
   results.sort((a,b)=> (a.su+a.je) - (b.su+b.je));
 
   const labels = results.map(r=>toVerticalLabel(formatUniNameCh1(r.uni)));
+  const chart1Labels = labels;
   const suData = results.map(r=>r.su);
   const jeData = results.map(r=>r.je);
   const uniRaw = results.map(r=>r.uni);
@@ -1352,7 +1386,17 @@ function renderChart1(rows){
       },
       plugins:{
         legend:{ position:'top', align:'end', labels:{boxWidth:12, font:{size:12}} },
-        title:{ display:true, text:'주요대 합격자 (단위: 명)', align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} }
+        title:{ display:true, text:'주요대 합격자 (단위: 명)', align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} },
+        tooltip:{
+          callbacks:{
+            // x축 라벨이 글자 배열(세로 표기용)이라 기본 제목은 '가,천,대'처럼 콤마로 이어짐 → 글자를 붙여서 표시
+            title(items){
+              if(!items.length) return '';
+              const lb = chart1Labels[items[0].dataIndex];
+              return Array.isArray(lb) ? lb.join('') : String(lb);
+            }
+          }
+        }
       }
     },
     plugins:[{
@@ -1446,6 +1490,7 @@ function renderChart2(rows){
   results.sort((a,b)=>a.app-b.app);
 
   const labels = results.map(r=>toVerticalLabel(formatUniNameCh2(r.uni)));
+  const chart2Labels = labels;
   const accData = results.map(r=>r.acc);
   const failData = results.map(r=>r.app - r.acc);
 
@@ -1465,7 +1510,17 @@ function renderChart2(rows){
       },
       plugins:{
         legend:{ position:'top', align:'end', labels:{boxWidth:12, font:{size:12}} },
-        title:{ display:true, text:'지원횟수 대비 합격자수', align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} }
+        title:{ display:true, text:'지원횟수 대비 합격자수', align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} },
+        tooltip:{
+          callbacks:{
+            // x축 라벨이 글자 배열(세로 표기용)이라 기본 제목은 '가,천,대'처럼 콤마로 이어짐 → 글자를 붙여서 표시
+            title(items){
+              if(!items.length) return '';
+              const lb = chart2Labels[items[0].dataIndex];
+              return Array.isArray(lb) ? lb.join('') : String(lb);
+            }
+          }
+        }
       }
     },
     plugins:[{
@@ -2250,6 +2305,7 @@ window.addEventListener('resize', ()=>{
     if(chart9Data) drawChart9WordCloud();
     if(chart11Data) drawChart11Heatmap();
     if(chart13Data) drawChart13();
+    if(chart15Data) drawChart15();
   }, 120);
 });
 
@@ -2425,17 +2481,28 @@ function renderChart9(rows){
   const susi = rows.filter(r=> String(r[colTiming]||'').includes('수시'));
   if(!susi.length){ showEmpty(9, '수시 지원 데이터가 없습니다.'); chart9Data = null; return; }
 
+  const colDept9 = colExists(rows, ['모집단위']);
   const counts = new Map();
+  const deptMap = new Map(); // 대학 → (모집단위 → 지원건수) — hover 팝업용
   susi.forEach(r=>{
     const uni = canonicalizeUni(r[colUni]);
     if(uni===null || uni===undefined || uni==='') return;
     counts.set(uni, (counts.get(uni)||0)+1); // value_counts(): 지원건수(중복 포함) 기준
+    if(colDept9){
+      const dv = r[colDept9];
+      if(dv!==null && dv!==undefined && String(dv).trim()!==''){
+        if(!deptMap.has(uni)) deptMap.set(uni, new Map());
+        const dm = deptMap.get(uni);
+        const dn = String(dv).trim();
+        dm.set(dn, (dm.get(dn)||0)+1);
+      }
+    }
   });
   if(!counts.size){ showEmpty(9, '유효한 대학명 데이터가 없습니다.'); chart9Data = null; return; }
 
   const uniqueCount = counts.size; // 참조 python의 df_freq (drop_duplicates 후 개수)
   const words = [...counts.entries()].map(([text,count])=>({text,count})).sort((a,b)=>b.count-a.count);
-  chart9Data = { words, uniqueCount };
+  chart9Data = { words, uniqueCount, deptMap, hasDept: !!colDept9, placed: [] };
   showChart(9);
   drawChart9WordCloud();
 }
@@ -2479,6 +2546,7 @@ function drawChart9WordCloud(){
 
   const rand = mulberry32(42); // 고정 시드 → 항상 같은 배치 결과
   const placed = [];
+  chart9Data.placed = placed; // hover 판정용 (단어 박스 좌표)
   ctx.save();
   words.forEach((w,i)=>{
     const fontSize = fontSizeFor(w.count);
@@ -2509,7 +2577,7 @@ function drawChart9WordCloud(){
     }
     if(!placedPos) return; // 공간이 부족해 배치하지 못한 단어는 건너뜀
 
-    placed.push({x:placedPos.x, y:placedPos.y, w:boxW, h:boxH});
+    placed.push({x:placedPos.x, y:placedPos.y, w:boxW, h:boxH, text:w.text, count:w.count});
     const color = CH9_COLORS[i % CH9_COLORS.length];
     ctx.fillStyle = color;
     ctx.save();
@@ -2528,6 +2596,81 @@ function drawChart9WordCloud(){
   });
   ctx.restore();
 }
+
+// CHART 09 hover: 마우스를 올린 대학의 지원학과(모집단위)를 팝업으로 표시
+(function(){
+  const canvas = document.getElementById('chart9');
+  const container = canvas.parentNode;
+  let popup = null;
+  function getPopup(){
+    if(!popup){
+      popup = document.createElement('div');
+      popup.className = 'ch9-popup';
+      container.appendChild(popup);
+    }
+    return popup;
+  }
+  function hitAt(e){
+    if(!chart9Data || !chart9Data.placed) return null;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    for(let i = chart9Data.placed.length - 1; i >= 0; i--){
+      const p = chart9Data.placed[i];
+      if(x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) return { p, x, y };
+    }
+    return null;
+  }
+  function hide(){
+    if(popup) popup.style.opacity = 0;
+    canvas.style.cursor = 'default';
+  }
+  function fill(el, p){
+    el.textContent = '';
+    const title = document.createElement('b');
+    title.textContent = `${p.text} · 지원 ${p.count}건`;
+    el.appendChild(title);
+    const dm = chart9Data.deptMap && chart9Data.deptMap.get(p.text);
+    if(!chart9Data.hasDept || !dm || !dm.size){
+      const d = document.createElement('div');
+      d.textContent = '지원학과 정보가 없습니다.';
+      el.appendChild(d);
+      return;
+    }
+    // 지원건수 많은 순 → 가나다순, 2건 이상이면 '×N' 표기
+    const list = [...dm.entries()].sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ko'));
+    const MAX = 20;
+    list.slice(0, MAX).forEach(([dept, n])=>{
+      const d = document.createElement('div');
+      d.textContent = n > 1 ? `${dept} ×${n}` : dept;
+      el.appendChild(d);
+    });
+    if(list.length > MAX){
+      const more = document.createElement('div');
+      more.className = 'more';
+      more.textContent = `… 외 ${list.length - MAX}개 학과`;
+      el.appendChild(more);
+    }
+  }
+  canvas.addEventListener('mousemove', e=>{
+    const hit = hitAt(e);
+    if(!hit){ hide(); return; }
+    canvas.style.cursor = 'pointer';
+    const el = getPopup();
+    if(el._uni !== hit.p.text || el._src !== chart9Data){
+      fill(el, hit.p);
+      el._uni = hit.p.text; el._src = chart9Data;
+    }
+    el.style.opacity = 1;
+    const cw = container.clientWidth, ch = container.clientHeight;
+    const w = el.offsetWidth, h = el.offsetHeight;
+    let left = hit.x + 14, top = hit.y + 14;
+    if(left + w > cw) left = Math.max(0, hit.x - w - 14);
+    if(top + h > ch) top = Math.max(0, ch - h);
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+  });
+  canvas.addEventListener('mouseleave', hide);
+})();
 
 /* ---- CHART 10: 수시 지원학과 Top (참조 python matplotlib 가로 막대그래프 이식) ----
    참조 파이썬 코드는 유사한 학과 표기를 하나로 합산(경영학과/경영학부 →
@@ -2558,8 +2701,19 @@ document.getElementById('ch14Redraw').addEventListener('click', ()=>{
   renderChart14FromInputs(lastNormalizedRows);
 });
 
+// 툴팁용 대학 이름 축약: '대학교/대학/대'를 빼고 '경희', '가천(글로벌)' 형식으로 표시
+function ch14ShortUni(name){
+  let s = String(name).trim();
+  s = s.replace(/대학교/g, '대').replace(/대학(?=\(|$)/g, '대');
+  s = s.replace(/대(?=\(|$)/, '');
+  return s || String(name).trim();
+}
+
 function renderChart14(rows, minCount){
+  // 이전에 학과가 많아 늘어난 카드 높이를 먼저 기본값으로 되돌림
+  document.getElementById('chart14').parentNode.style.height = '';
   const colDept = colExists(rows, ['모집단위']);
+  const colUni = colExists(rows, ['대학']);
   if(!colDept){ showEmpty(14, missingColsMessage([{label:'모집단위',col:colDept}])); return; }
   if(isNaN(minCount) || minCount<1){
     showEmpty(14, '최소 지원건수 값을 올바르게 입력해 주세요.'); return;
@@ -2571,11 +2725,20 @@ function renderChart14(rows, minCount){
     if(dept===null || dept===undefined || dept==='') return;
     dept = String(dept).trim();
     if(CH14_DEPT_MAP[dept]) dept = CH14_DEPT_MAP[dept];
-    counts.set(dept, (counts.get(dept)||0)+1);
+    if(!counts.has(dept)) counts.set(dept, { count:0, unis:new Map() });
+    const c = counts.get(dept);
+    c.count += 1;
+    if(colUni){
+      const u = r[colUni];
+      if(u!==null && u!==undefined && u!==''){
+        const short = ch14ShortUni(canonicalizeUni(u));
+        c.unis.set(short, (c.unis.get(short)||0)+1);
+      }
+    }
   });
 
   let results = [...counts.entries()]
-    .map(([dept,count])=>({dept, count}))
+    .map(([dept,c])=>({dept, count:c.count, unis:c.unis}))
     .filter(r=> r.count >= minCount);
 
   if(!results.length){ showEmpty(14, `지원건수 ${minCount}건 이상인 모집단위가 없습니다.`); return; }
@@ -2586,6 +2749,8 @@ function renderChart14(rows, minCount){
   //  가장 큰 값이 맨 위, 가장 작은 값이 맨 아래에 위치한다)
   results.sort((a,b)=> b.count - a.count);
   const deptCount = results.length; // 참조 python의 freq_num
+  // 학과가 많으면 막대 한 줄당 24px을 확보하도록 카드 높이를 늘려 라벨이 겹치거나 생략되지 않게 함
+  document.getElementById('chart14').parentNode.style.height = Math.max(380, deptCount*24 + 90) + 'px';
 
   const labels = results.map(r=>r.dept);
   const data = results.map(r=>r.count);
@@ -2600,14 +2765,32 @@ function renderChart14(rows, minCount){
     options:{
       indexAxis:'y',
       responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'nearest', axis:'y', intersect:false },
       layout:{ padding:{ right: 26 } },
       scales:{
         x:{ min:0, grid:{color:COLOR.grid} },
-        y:{ grid:{display:false}, ticks:{font:{size:11}} }
+        y:{ grid:{display:false}, ticks:{font:{size:11}, autoSkip:false} }
       },
       plugins:{
         legend:{ display:false },
-        title:{ display:true, text:`지원학과 Top${deptCount}`, align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} }
+        title:{ display:true, text:`지원학과 Top${deptCount}`, align:'start', font:{size:15, family:"'Noto Serif KR', serif", weight:'700'}, color: COLOR.navy, padding:{bottom:14} },
+        tooltip:{
+          displayColors:false,
+          callbacks:{
+            title(){ return ''; }, // '학과명 지원건수: N' 제목 줄은 표시하지 않음
+            label(ctx){
+              const r = results[ctx.dataIndex];
+              if(!r.unis || !r.unis.size) return '';
+              // 지원건수 많은 순 → 가나다순, 2건 이상이면 '×N' 표기
+              const names = [...r.unis.entries()]
+                .sort((a,b)=> (b[1]-a[1]) || a[0].localeCompare(b[0],'ko'))
+                .map(([u,n])=> n>1 ? `${u}×${n}` : u);
+              const lines = [`지원대학 ${names.length}개교`];
+              for(let i=0;i<names.length;i+=6) lines.push(names.slice(i,i+6).join(', '));
+              return lines;
+            }
+          }
+        }
       }
     },
     plugins:[{
@@ -3325,6 +3508,187 @@ function drawChart13(){
     canvas.style.cursor = (chart13Data && hitAt(e)) ? 'pointer' : 'default';
   });
 })();
+
+/* ---- CHART 14: 등급대별 수능최저등급 충족여부 (참조 python #55 이식) ----
+   참조 파이썬: 전형분류가 '수능'이 아닌 행 중 전과목이 [높은 등급, 낮은 등급)인
+   행을 이름 기준으로 중복 제거(첫 행만 유지)한 뒤, 국어/수학/영어/탐구1/탐구2 등급의
+   NaN을 0으로 채우고, (선택) 탐구1·2 평균(절사 가능)을 '탐구_등급'으로 사용하여
+   가장 작은 2개/3개/4개 등급의 합(2합·3합·4합)을 계산해 전과목 오름차순 표로 출력한다.
+   여기서는 표를 Canvas로 그려 PNG 저장이 가능하도록 했다.
+   ※ python과 동일하게 결측 등급은 0으로 취급되므로 합이 실제보다 작게 나올 수 있다.
+---------------------------------------------------------------- */
+let chart15Data = null; // { title, headers, rows:[string[]], sumStart }
+
+function renderChart15FromInputs(rows){
+  const lo = parseFloat(document.getElementById('ch15Min').value);
+  const hi = parseFloat(document.getElementById('ch15Max').value);
+  const useAvg = document.getElementById('ch15Avg').checked;
+  const trunc = useAvg && document.getElementById('ch15Trunc').checked;
+  renderChart15(rows, lo, hi, useAvg, trunc);
+}
+
+document.getElementById('ch15Redraw').addEventListener('click', ()=>{
+  if(!lastNormalizedRows){ return; }
+  renderChart15FromInputs(lastNormalizedRows);
+});
+document.getElementById('ch15Avg').addEventListener('change', e=>{
+  const t = document.getElementById('ch15Trunc');
+  t.disabled = !e.target.checked;
+  if(!e.target.checked) t.checked = false;
+});
+
+function ch15Fmt(n){ return String(Math.round(n*100)/100); }
+
+function renderChart15(rows, lo, hi, useAvg, trunc){
+  const colType = colExists(rows, ['전형분류']);
+  const colGrade = colExists(rows, ['전과목']);
+  const colName = colExists(rows, ['이름','학번']);
+  const colK = colExists(rows, ['국어_등급']);
+  const colM = colExists(rows, ['수학_등급']);
+  const colE = colExists(rows, ['영어_등급']);
+  const colT1 = colExists(rows, ['선택1_등급']);
+  const colT2 = colExists(rows, ['선택2_등급']);
+  if(!colType || !colGrade || !colName || !colK || !colM || !colE || !colT1 || !colT2){
+    showEmpty(15, missingColsMessage([
+      {label:'전형분류',col:colType},{label:'전과목',col:colGrade},{label:'이름(또는 학번)',col:colName},
+      {label:'국어_등급',col:colK},{label:'수학_등급',col:colM},{label:'영어_등급',col:colE},
+      {label:'선택1_등급',col:colT1},{label:'선택2_등급',col:colT2}]));
+    chart15Data = null; return;
+  }
+  if(isNaN(lo) || isNaN(hi) || hi <= lo){
+    showEmpty(15, '"내신 높은 등급"과 "내신 낮은 등급" 값을 올바르게 입력해 주세요. (높은 등급 < 낮은 등급)');
+    chart15Data = null; return;
+  }
+
+  // python: df[전형분류 != '수능'] → 전과목 [lo, hi) → drop_duplicates('이름')
+  const seen = new Set();
+  const list = [];
+  rows.forEach(r=>{
+    if(r[colType] === '수능') return;
+    const gv = r[colGrade];
+    if(gv===null || gv===undefined || gv==='') return;
+    const g = Number(gv);
+    if(isNaN(g) || g < lo || g >= hi) return;
+    const nm = r[colName];
+    const key = (nm===null || nm===undefined || nm==='') ? 'nan' : String(nm);
+    if(seen.has(key)) return;
+    seen.add(key);
+
+    // python: fillna(0)
+    const z = v => { const n = toNum(v); return Number.isNaN(n) ? 0 : n; };
+    const k = z(r[colK]), m = z(r[colM]), e = z(r[colE]), t1 = z(r[colT1]), t2 = z(r[colT2]);
+    let arr, tam = null;
+    if(useAvg){
+      tam = (t1 + t2) / 2;
+      if(trunc) tam = Math.floor(tam);
+      arr = [k, m, e, tam];
+    } else {
+      arr = [k, m, e, t1, t2];
+    }
+    const sorted = arr.slice().sort((a,b)=> a-b);
+    const sumN = n => sorted.slice(0, n).reduce((a,b)=> a+b, 0);
+    const cells = [g.toFixed(2), ch15Fmt(k), ch15Fmt(m), ch15Fmt(e)];
+    if(useAvg) cells.push(ch15Fmt(tam)); else { cells.push(ch15Fmt(t1)); cells.push(ch15Fmt(t2)); }
+    cells.push(ch15Fmt(sumN(2)), ch15Fmt(sumN(3)), ch15Fmt(sumN(4)));
+    list.push({ g, cells });
+  });
+
+  if(!list.length){
+    showEmpty(15, `전형분류가 '수능'이 아닌 전과목 ${lo}등급 이상 ${hi}등급 미만인 학생이 없습니다.`);
+    chart15Data = null; return;
+  }
+
+  list.sort((a,b)=> a.g - b.g); // 전과목 오름차순 (안정 정렬)
+
+  const headers = ['전과목','국어_등급','수학_등급','영어_등급'];
+  if(useAvg) headers.push('탐구_등급'); else headers.push('탐구1_등급','탐구2_등급');
+  const sumStart = headers.length;
+  headers.push('2합','3합','4합');
+
+  const avgNote = useAvg ? ` · 탐구 평균${trunc ? '(절사)' : ''}` : '';
+  chart15Data = {
+    title: `${workYear}학년도 등급대별 수능최저등급 충족여부 (내신 ${lo}~${hi}등급 미만, ${list.length}명${avgNote})`,
+    headers, rows: list.map(x=> x.cells), sumStart
+  };
+  showChart(15);
+  drawChart15();
+}
+
+function drawChart15(){
+  if(!chart15Data) return;
+  const { title, headers, rows, sumStart } = chart15Data;
+  const canvas = document.getElementById('chart15');
+  const container = canvas.parentNode;
+  const availW = container.clientWidth;
+  if(availW <= 0) return;
+
+  const colW = 92, rowH = 26, headH = 30, topPad = 40, left = 4, bottomPad = 12;
+  const tableW = headers.length * colW;
+  const cssW = Math.max(availW, left + tableW + 12);
+  const cssH = topPad + headH + rows.length * rowH + bottomPad;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(cssW * dpr);
+  canvas.height = Math.round(cssH * dpr);
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssW,cssH);
+
+  // 제목
+  ctx.save();
+  ctx.font = "700 15px 'Noto Serif KR', serif";
+  ctx.fillStyle = COLOR.navy;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(title, 4, 22);
+  ctx.restore();
+
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center';
+
+  // 헤더 (2합·3합·4합은 금색 강조)
+  headers.forEach((h, c)=>{
+    const x = left + c * colW;
+    const isSum = c >= sumStart;
+    ctx.fillStyle = isSum ? COLOR.gold : COLOR.navy;
+    ctx.fillRect(x, topPad, colW, headH);
+    ctx.fillStyle = isSum ? COLOR.navy : '#fbf9f4';
+    ctx.font = "700 12px 'Noto Sans KR', sans-serif";
+    ctx.fillText(h, x + colW/2, topPad + headH/2);
+  });
+
+  // 본문
+  rows.forEach((cells, ri)=>{
+    const y = topPad + headH + ri * rowH;
+    if(ri % 2 === 1){
+      ctx.fillStyle = 'rgba(27,42,74,0.05)';
+      ctx.fillRect(left, y, tableW, rowH);
+    }
+    cells.forEach((v, c)=>{
+      const x = left + c * colW;
+      const isSum = c >= sumStart;
+      if(isSum){
+        ctx.fillStyle = 'rgba(200,155,60,0.14)';
+        ctx.fillRect(x, y, colW, rowH);
+      }
+      ctx.fillStyle = COLOR.navy;
+      ctx.font = (isSum || c === 0)
+        ? "700 12px 'Noto Sans KR', sans-serif"
+        : "500 12px 'Noto Sans KR', sans-serif";
+      ctx.fillText(v, x + colW/2, y + rowH/2);
+    });
+    ctx.strokeStyle = COLOR.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(left, y + rowH); ctx.lineTo(left + tableW, y + rowH);
+    ctx.stroke();
+  });
+
+  ctx.restore();
+}
 
 /* ================================================================
    3. 시그니처 엑셀자료 생성 (구 openpyxl 스크립트 이식)
